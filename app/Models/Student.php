@@ -94,7 +94,10 @@ class Student extends Model
     // Méthode pour obtenir la classe actuelle de manière sécurisée
     public function getCurrentClass()
     {
-        $enrollment = $this->enrollments()->with('schoolClass.level')->first();
+        $enrollment = $this->enrollments()
+                          ->with('schoolClass.level')
+                          ->where('status', 'active')
+                          ->first();
         return $enrollment ? $enrollment->schoolClass : null;
     }
 

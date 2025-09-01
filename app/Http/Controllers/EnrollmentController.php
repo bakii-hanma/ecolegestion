@@ -10,6 +10,7 @@ use App\Models\Level;
 use App\Models\ParentModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class EnrollmentController extends Controller
 {
@@ -120,13 +121,6 @@ class EnrollmentController extends Controller
             'applicant_email' => 'nullable|email|max:255',
             'applicant_address' => 'required|string',
             
-            // Informations du parent/tuteur
-            'parent_first_name' => 'required|string|max:255',
-            'parent_last_name' => 'required|string|max:255',
-            'parent_phone' => 'required|string|max:255',
-            'parent_email' => 'nullable|email|max:255',
-            'parent_relationship' => 'required|in:father,mother,guardian,other',
-            
             // Informations de l'inscription
             'class_id' => 'required|exists:classes,id',
             'academic_year_id' => 'required|exists:academic_years,id',
@@ -136,11 +130,35 @@ class EnrollmentController extends Controller
             // Informations de paiement
             'total_fees' => 'required|numeric|min:0',
             'amount_paid' => 'required|numeric|min:0',
-            'payment_method' => 'required|in:cash,bank_transfer,check,mobile_money,other',
+            'payment_method' => 'nullable|in:cash,bank_transfer,check,mobile_money,card',
             'payment_reference' => 'nullable|string|max:255',
             'payment_notes' => 'nullable|string',
-            'payment_due_date' => 'nullable|date|after_or_equal:enrollment_date'
+            'payment_due_date' => 'nullable|date|after_or_equal:enrollment_date',
+            
+            // Informations Mobile Money (conditionnelles)
+            'mobile_money_provider' => 'nullable|required_if:payment_method,mobile_money|in:airtel,moov',
+            'mobile_money_number' => 'nullable|required_if:payment_method,mobile_money|string|regex:/^0[67][0-9]{7}$/|min:9|max:9'
         ]);
+
+        // Validation supplémentaire : vérifier que le numéro correspond à l'opérateur
+        if ($validated['payment_method'] === 'mobile_money') {
+            $provider = $validated['mobile_money_provider'];
+            $number = $validated['mobile_money_number'];
+            
+            if ($provider === 'airtel' && !preg_match('/^07[0-9]{7}$/', $number)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le numéro Airtel doit commencer par 07 et contenir 9 chiffres (ex: 076527007)'
+                ], 422);
+            }
+            
+            if ($provider === 'moov' && !preg_match('/^06[0-9]{7}$/', $number)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Le numéro Moov/Libertis doit commencer par 06 et contenir 9 chiffres (ex: 066527007)'
+                ], 422);
+            }
+        }
 
         // Vérifier s'il n'y a pas déjà une inscription pour cette personne
         $existingEnrollment = Enrollment::where('applicant_first_name', $validated['applicant_first_name'])
@@ -409,6 +427,21 @@ class EnrollmentController extends Controller
                            ->with('error', 'Cette inscription ne permet pas la création d\'un élève.');
         }
 
+        // Charger les relations nécessaires pour afficher les informations complètes
+        $enrollment->load(['schoolClass.levelData', 'academicYear']);
+        
+        // Debug: Vérifier les relations chargées
+        Log::info('Enrollment relations loaded', [
+            'enrollment_id' => $enrollment->id,
+            'academic_year_id' => $enrollment->academic_year_id,
+            'class_id' => $enrollment->class_id,
+            'academicYear_type' => get_class($enrollment->academicYear ?? null),
+            'schoolClass_type' => get_class($enrollment->schoolClass ?? null),
+            'schoolClass_name' => $enrollment->schoolClass->name ?? 'NULL',
+            'level_name' => $enrollment->schoolClass->levelData->name ?? 'NULL',
+            'level_id' => $enrollment->schoolClass->level_id ?? 'NULL'
+        ]);
+
         return view('enrollments.create-student', compact('enrollment'));
     }
 
@@ -425,7 +458,6 @@ class EnrollmentController extends Controller
         }
 
         $validated = $request->validate([
-            'student_id' => 'nullable|unique:students', // Optionnel, sera généré automatiquement
             'place_of_birth' => 'nullable|string|max:255',
             'emergency_contact' => 'nullable|string|max:255',
             'medical_conditions' => 'nullable|string',
@@ -437,8 +469,8 @@ class EnrollmentController extends Controller
             // Préparer les données de l'élève
             $studentData = $enrollment->getStudentDataForCreation();
             
-            // Générer automatiquement le matricule si non fourni
-            $studentData['student_id'] = $validated['student_id'] ?? Student::generateStudentId();
+            // Générer automatiquement le matricule (toujours)
+            $studentData['student_id'] = Student::generateStudentId();
             
             $studentData['place_of_birth'] = $validated['place_of_birth'];
             $studentData['emergency_contact'] = $validated['emergency_contact'];
@@ -452,23 +484,9 @@ class EnrollmentController extends Controller
             // Créer l'élève
             $student = Student::create($studentData);
 
-            // Créer ou associer le parent
-            $parentData = $enrollment->getParentDataForCreation();
-            
-            // Vérifier si un parent similaire existe déjà
-            $existingParent = ParentModel::where('first_name', $parentData['first_name'])
-                                        ->where('last_name', $parentData['last_name'])
-                                        ->where('phone', $parentData['phone'])
-                                        ->first();
-
-            if ($existingParent) {
-                $parent = $existingParent;
-            } else {
-                $parent = ParentModel::create($parentData);
-            }
-
-            // Associer l'élève au parent
-            $student->parents()->attach($parent->id);
+            // Ne plus créer automatiquement le parent car les données parent 
+            // ne sont plus dans le formulaire d'inscription
+            $parent = null;
 
             // Mettre à jour l'inscription
             $enrollment->markAsStudentCreated($student->id);
@@ -477,9 +495,8 @@ class EnrollmentController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Élève créé avec succès depuis l\'inscription!',
+                'message' => 'Élève créé avec succès depuis l\'inscription! Vous pourrez ajouter les parents ultérieurement.',
                 'student' => $student,
-                'parent' => $parent,
                 'enrollment' => $enrollment->fresh()
             ]);
 
@@ -535,7 +552,10 @@ class EnrollmentController extends Controller
             $enrollment->generateReceiptNumber();
         }
 
-        return view('enrollments.receipt', compact('enrollment'));
+        // Charger les paramètres de l'établissement
+        $schoolSettings = \App\Models\SchoolSettings::getSettings();
+
+        return view('enrollments.receipt', compact('enrollment', 'schoolSettings'));
     }
 
     /**
@@ -551,8 +571,28 @@ class EnrollmentController extends Controller
         // Charger les relations nécessaires
         $enrollment->load(['schoolClass.level', 'academicYear']);
 
+        // Charger les paramètres de l'établissement
+        $schoolSettings = \App\Models\SchoolSettings::getSettings();
+        
+        // Ajouter le chemin local du logo pour DomPDF
+        if ($schoolSettings && $schoolSettings->school_logo) {
+            $logoPath = storage_path('app/public/' . $schoolSettings->school_logo);
+            
+            // Pour DomPDF, utiliser un chemin relatif simple
+            $schoolSettings->logo_local_path = public_path('storage/' . $schoolSettings->school_logo);
+            
+            // Alternative: encoder en base64 pour DomPDF
+            if (file_exists($logoPath)) {
+                $logoContent = file_get_contents($logoPath);
+                $logoInfo = pathinfo($logoPath);
+                $extension = strtolower($logoInfo['extension']);
+                $mimeType = 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension);
+                $schoolSettings->logo_base64 = 'data:' . $mimeType . ';base64,' . base64_encode($logoContent);
+            }
+        }
+
         // Générer le PDF avec DomPDF
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('enrollments.receipt-pdf', compact('enrollment'));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('enrollments.receipt-pdf', compact('enrollment', 'schoolSettings'));
         
         // Configuration pour format A5
         $pdf->setPaper('A5', 'portrait');

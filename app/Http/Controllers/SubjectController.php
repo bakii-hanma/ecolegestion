@@ -6,6 +6,7 @@ use App\Models\Subject;
 use App\Models\Level;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class SubjectController extends Controller
 {
@@ -14,22 +15,21 @@ class SubjectController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Subject::with('level');
+        $query = Subject::query();
         
-        // Filtrer par niveau si spécifié
-        if ($request->has('level_id') && $request->level_id) {
-            $query->where('level_id', $request->level_id);
-        }
-
-        // Filtrer par cycle (collège/lycée)
+        // Filtrer par cycle si spécifié
         if ($request->has('cycle') && $request->cycle) {
-            $query->byCycle($request->cycle);
+            $query->where('cycle', $request->cycle);
+        }
+
+        // Filtrer par série si spécifié (pour le lycée)
+        if ($request->has('series') && $request->series) {
+            $query->whereJsonContains('series', $request->series);
         }
         
-        $subjects = $query->orderBy('name')->paginate(15);
-        $levels = Level::active()->orderBy('order')->get();
+        $subjects = $query->orderBy('cycle')->orderBy('name')->paginate(15);
 
-        return view('subjects.index', compact('subjects', 'levels'));
+        return view('subjects.index', compact('subjects'));
     }
 
     /**
@@ -37,8 +37,7 @@ class SubjectController extends Controller
      */
     public function create()
     {
-        $levels = Level::active()->orderBy('order')->get();
-        return view('subjects.create', compact('levels'));
+        return view('subjects.create');
     }
 
     /**
@@ -46,22 +45,54 @@ class SubjectController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:subjects,code',
             'description' => 'nullable|string',
             'coefficient' => 'required|numeric|min:0',
-            'level_id' => 'required|exists:levels,id',
+            'cycle' => 'required|in:primaire,college,lycee',
             'is_active' => 'boolean'
-        ]);
+        ];
 
-        $subject = Subject::create($validated);
+        // Validation conditionnelle pour les séries du lycée
+        if ($request->cycle === 'lycee') {
+            $rules['series'] = 'required|array|min:1';
+            $rules['series.*'] = 'in:S,A1,A2,B,C,D,E,LE';
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Matière créée avec succès!',
-            'subject' => $subject
-        ]);
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreurs de validation: ' . implode(', ', $validator->errors()->all()),
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // Pour les cycles non-lycée, pas de séries
+        if ($request->cycle !== 'lycee') {
+            $validated['series'] = null;
+        }
+
+        try {
+            $subject = Subject::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Matière créée avec succès!',
+                'subject' => $subject
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la création de la matière: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de l\'enregistrement de la matière: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -69,7 +100,6 @@ class SubjectController extends Controller
      */
     public function show(Subject $subject)
     {
-        $subject->load('level');
         return view('subjects.show', compact('subject'));
     }
 
@@ -78,8 +108,7 @@ class SubjectController extends Controller
      */
     public function edit(Subject $subject)
     {
-        $levels = Level::active()->orderBy('order')->get();
-        return view('subjects.edit', compact('subject', 'levels'));
+        return view('subjects.edit', compact('subject'));
     }
 
     /**
@@ -87,22 +116,54 @@ class SubjectController extends Controller
      */
     public function update(Request $request, Subject $subject)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:subjects,code,' . $subject->id,
             'description' => 'nullable|string',
             'coefficient' => 'required|numeric|min:0',
-            'level_id' => 'required|exists:levels,id',
+            'cycle' => 'required|in:primaire,college,lycee',
             'is_active' => 'boolean'
-        ]);
+        ];
 
-        $subject->update($validated);
+        // Validation conditionnelle pour les séries du lycée
+        if ($request->cycle === 'lycee') {
+            $rules['series'] = 'required|array|min:1';
+            $rules['series.*'] = 'in:S,A1,A2,B,C,D,E,LE';
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Matière mise à jour avec succès!',
-            'subject' => $subject
-        ]);
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreurs de validation: ' . implode(', ', $validator->errors()->all()),
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        // Pour les cycles non-lycée, pas de séries
+        if ($request->cycle !== 'lycee') {
+            $validated['series'] = null;
+        }
+
+        try {
+            $subject->update($validated);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Matière mise à jour avec succès!',
+                'subject' => $subject
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Erreur lors de la mise à jour de la matière: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la mise à jour de la matière: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -127,13 +188,14 @@ class SubjectController extends Controller
     }
 
     /**
-     * Obtenir les matières d'un niveau spécifique
+     * Obtenir les matières d'un cycle spécifique
      */
-    public function byLevel(Level $level)
+    public function byCycle(Request $request)
     {
-        $subjects = $level->subjects()->paginate(15);
+        $cycle = $request->get('cycle');
+        $subjects = Subject::where('cycle', $cycle)->paginate(15);
         
-        return view('subjects.index', compact('subjects', 'level'));
+        return view('subjects.index', compact('subjects'));
     }
 
     /**
@@ -145,7 +207,7 @@ class SubjectController extends Controller
         
         $subjects = Subject::where('name', 'like', "%{$query}%")
             ->orWhere('code', 'like', "%{$query}%")
-            ->with('level')
+            ->orWhere('cycle', 'like', "%{$query}%")
             ->paginate(15);
 
         return view('subjects.index', compact('subjects'));

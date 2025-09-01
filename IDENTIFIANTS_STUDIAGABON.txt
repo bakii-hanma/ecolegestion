@@ -1,0 +1,157 @@
+===============================
+ IDENTIFIANTS SYSTÈME STUDIAGABON
+===============================
+
+📚 SYSTÈME DE GESTION SCOLAIRE
+Version: 1.0
+Date de création: 21 Décembre 2025
+
+===============================
+ 🔑 COMPTES PAR RÔLES
+===============================
+
+👑 SUPER ADMINISTRATEUR
+========================
+Nom: Super Administrateur StudiaGabon
+Email: superadmin@studiagabon.com
+Mot de passe: SuperAdmin2025!
+Matricule: SUAD25001
+Rôle: superadmin
+Accès: COMPLET (Toutes fonctionnalités + Maintenance système)
+
+🛠️ ADMINISTRATEUR
+=================
+Nom: Administrateur Principal
+Email: admin@studiagabon.com
+Mot de passe: Admin2025!
+Matricule: ADPR25001
+Rôle: admin
+Accès: Gestion complète (sauf maintenance système)
+
+👨‍🏫 ENSEIGNANTS
+===============
+
+1. Enseignant Principal
+   Nom: Marie Claire OBAMA
+   Email: marie.obama@studiagabon.com
+   Mot de passe: Marie1234
+   Matricule: MAOB25001
+   Rôle: teacher
+   Accès: Classes, Notes, Présences, Emplois du temps
+
+2. Enseignant Secondaire
+   Nom: Jean Baptiste MBALLA
+   Email: jean.mballa@studiagabon.com
+   Mot de passe: Jean1234
+   Matricule: JEMB25001
+   Rôle: teacher
+   Accès: Classes, Notes, Présences, Emplois du temps
+
+3. Enseignant Adjoint
+   Nom: Paul NLEND
+   Email: paul.nlend@studiagabon.com
+   Mot de passe: Paul1234
+   Matricule: PANL25001
+   Rôle: teacher
+   Accès: Classes, Notes, Présences, Emplois du temps
+
+📝 SECRÉTAIRES
+==============
+
+1. Secrétaire Principale
+   Nom: Sylvie NGONO
+   Email: sylvie.ngono@studiagabon.com
+   Mot de passe: Sylvie1234
+   Matricule: SYNG25001
+   Rôle: secretary
+   Accès: Inscriptions, Finances, Consultation
+
+2. Secrétaire Adjointe
+   Nom: Flore MENGUE
+   Email: flore.mengue@studiagabon.com
+   Mot de passe: Flore1234
+   Matricule: FLME25001
+   Rôle: secretary
+   Accès: Inscriptions, Finances, Consultation
+
+===============================
+ 📋 RÉSUMÉ DES ACCÈS PAR RÔLE
+===============================
+
+🔴 SUPERADMIN (superadmin@studiagabon.com)
+   ✅ Gestion complète du système
+   ✅ Administration des utilisateurs
+   ✅ Informations système
+   ✅ Sécurité et journaux
+   ✅ Maintenance et optimisation
+   ✅ Sauvegarde base de données
+
+🟠 ADMIN (admin@studiagabon.com)
+   ✅ Gestion académique complète
+   ✅ Administration des utilisateurs
+   ✅ Inscriptions et finances
+   ✅ Rapports et statistiques
+   ❌ Informations système
+   ❌ Sécurité avancée
+   ❌ Maintenance
+
+🔵 ENSEIGNANTS (marie.obama@, jean.mballa@, paul.nlend@)
+   ✅ Ses classes assignées
+   ✅ Saisie des notes
+   ✅ Gestion des présences
+   ✅ Consultation emplois du temps
+   ✅ Liste de ses élèves
+   ❌ Administration
+   ❌ Finances
+
+🟢 SECRÉTAIRES (sylvie.ngono@, flore.mengue@)
+   ✅ Inscriptions des élèves
+   ✅ Gestion des paiements
+   ✅ Frais scolaires
+   ✅ Consultation classes/enseignants
+   ❌ Administration
+   ❌ Saisie des notes
+
+===============================
+ 🔐 RÈGLES DE SÉCURITÉ
+===============================
+
+🔹 Mots de passe par défaut:
+   - SuperAdmin/Admin: Mots de passe complexes
+   - Enseignants/Secrétaires: Prénom + 1234
+
+🔹 Système de matricules:
+   - Format: 2 lettres prénom + 2 lettres nom + année + numéro
+   - Exemple: Marie OBAMA → MAOB25001
+
+🔹 Recommandations:
+   ⚠️  Changer les mots de passe par défaut
+   ⚠️  Utiliser des mots de passe forts (8+ caractères)
+   ⚠️  Désactiver les comptes inutilisés
+   ⚠️  Surveiller les tentatives de connexion
+
+===============================
+ 🌐 ACCÈS SYSTÈME
+===============================
+
+URL: http://127.0.0.1:8000 (développement)
+Page de connexion: /login
+Page d'inscription: /register (si activée)
+
+===============================
+ 📞 SUPPORT TECHNIQUE
+===============================
+
+En cas de problème:
+1. Vérifier les identifiants ci-dessus
+2. Contacter l'administrateur système
+3. Consulter les logs de sécurité (SuperAdmin)
+
+===============================
+⚠️  CONFIDENTIALITÉ
+Ce fichier contient des informations sensibles.
+À conserver en sécurité et ne pas partager.
+===============================
+
+Généré automatiquement le 21/12/2025
+StudiaGabon - Système de Gestion Scolaire

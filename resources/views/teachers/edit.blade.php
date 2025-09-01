@@ -19,7 +19,7 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <form id="teacherForm" method="POST" action="{{ route('teachers.update', $teacher) }}">
+                    <form id="teacherForm" method="POST" action="{{ route('teachers.update', $teacher) }}" enctype="multipart/form-data">
                         @csrf
                         @method('PUT')
                         
@@ -29,8 +29,16 @@
                                 <h5 class="text-primary mb-3">Informations personnelles</h5>
                                 
                                 <div class="mb-3">
-                                    <label for="employee_id" class="form-label">Numéro employé *</label>
-                                    <input type="text" class="form-control" id="employee_id" name="employee_id" value="{{ $teacher->employee_id }}" required>
+                                    <label for="employee_id" class="form-label">Matricule enseignant</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                        <input type="text" class="form-control" id="employee_id_display" readonly style="background-color: #f8f9fa;" value="{{ $teacher->employee_id }}">
+                                        <input type="hidden" id="employee_id" name="employee_id" value="{{ $teacher->employee_id }}">
+                                    </div>
+                                    <div class="form-text">
+                                        <i class="bi bi-shield-check me-1 text-success"></i>
+                                        <span class="text-success">Matricule existant</span> - Ce matricule ne peut pas être modifié
+                                    </div>
                                 </div>
                                 
                                 <div class="row">
@@ -81,6 +89,36 @@
                                     <label for="address" class="form-label">Adresse</label>
                                     <textarea class="form-control" id="address" name="address" rows="3">{{ $teacher->address }}</textarea>
                                 </div>
+                                
+                                <div class="mb-3">
+                                    <label for="photo" class="form-label">
+                                        <i class="bi bi-camera me-2"></i>Photo d'identité
+                                    </label>
+                                    @if($teacher->photo)
+                                        <div class="mb-2">
+                                            <img src="{{ asset('storage/' . $teacher->photo) }}" 
+                                                 alt="Photo actuelle" 
+                                                 class="img-thumbnail" 
+                                                 style="max-width: 100px; max-height: 100px;">
+                                            <div class="form-text">
+                                                <small class="text-success">
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    Photo actuelle
+                                                </small>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Formats acceptés: JPG, PNG, GIF (max 2MB)
+                                            @if($teacher->photo)
+                                                <br><em>Laisser vide pour conserver la photo actuelle</em>
+                                            @endif
+                                        </small>
+                                    </div>
+                                </div>
                             </div>
                             
                             <!-- Informations professionnelles -->
@@ -128,8 +166,21 @@
                                 </div>
                                 
                                 <div class="mb-3 {{ $teacher->teacher_type === 'specialized' ? '' : 'd-none' }}" id="specialization_div">
-                                    <label for="specialization" class="form-label">Spécialisation *</label>
-                                    <input type="text" class="form-control" id="specialization" name="specialization" value="{{ $teacher->specialization }}" placeholder="Ex: Mathématiques, Français, Histoire...">
+                                    <label for="specialization" class="form-label">Matière de spécialisation *</label>
+                                    <select class="form-select" id="specialization" name="specialization">
+                                        <option value="">Sélectionner une matière</option>
+                                        @foreach($subjects as $subject)
+                                            <option value="{{ $subject->name }}" {{ $teacher->specialization === $subject->name ? 'selected' : '' }}>
+                                                {{ $subject->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Sélectionnez la matière principale enseignée par ce professeur
+                                        </small>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -189,7 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const assignedClassDiv = document.getElementById('assigned_class_div');
     const specializationDiv = document.getElementById('specialization_div');
     const assignedClassSelect = document.getElementById('assigned_class_id');
-    const specializationInput = document.getElementById('specialization');
+    const specializationSelect = document.getElementById('specialization');
     
     // Gérer le changement de cycle (sélection automatique du type)
     cycleSelect.addEventListener('change', function() {
@@ -201,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
             teacherTypeSelect.disabled = true; // Désactiver le changement
             assignedClassDiv.style.display = 'block';
             specializationDiv.style.display = 'none';
-            specializationInput.removeAttribute('required');
+            specializationSelect.removeAttribute('required');
             assignedClassSelect.setAttribute('required', 'required');
         } else if (selectedCycle === 'college' || selectedCycle === 'lycee') {
             teacherTypeSelect.value = 'specialized';
@@ -209,13 +260,13 @@ document.addEventListener('DOMContentLoaded', function() {
             assignedClassDiv.style.display = 'none';
             specializationDiv.style.display = 'block';
             assignedClassSelect.removeAttribute('required');
-            specializationInput.setAttribute('required', 'required');
+            specializationSelect.setAttribute('required', 'required');
         } else {
             teacherTypeSelect.value = '';
             teacherTypeSelect.disabled = false;
             assignedClassDiv.style.display = 'none';
             specializationDiv.style.display = 'none';
-            specializationInput.removeAttribute('required');
+            specializationSelect.removeAttribute('required');
             assignedClassSelect.removeAttribute('required');
         }
         
@@ -240,17 +291,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.value === 'general') {
             assignedClassDiv.style.display = 'block';
             specializationDiv.style.display = 'none';
-            specializationInput.removeAttribute('required');
+            specializationSelect.removeAttribute('required');
             assignedClassSelect.setAttribute('required', 'required');
         } else if (this.value === 'specialized') {
             assignedClassDiv.style.display = 'none';
             specializationDiv.style.display = 'block';
             assignedClassSelect.removeAttribute('required');
-            specializationInput.setAttribute('required', 'required');
+            specializationSelect.setAttribute('required', 'required');
         } else {
             assignedClassDiv.style.display = 'none';
             specializationDiv.style.display = 'none';
-            specializationInput.removeAttribute('required');
+            specializationSelect.removeAttribute('required');
             assignedClassSelect.removeAttribute('required');
         }
     });
@@ -288,8 +339,14 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Afficher un message de succès
-                alert(data.message);
+                // Afficher le message de succès avec le matricule généré
+                let message = data.message;
+                if (data.generated_matricule) {
+                    message += `\n\nMatricule généré: ${data.generated_matricule}`;
+                }
+                
+                alert(message);
+                
                 // Rediriger vers la page de détails
                 window.location.href = '{{ route("teachers.show", $teacher) }}';
             } else {

@@ -17,14 +17,39 @@
                     <p class="text-muted">Gérez les informations des parents et tuteurs</p>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addParentModal">
+                    <a href="{{ route('parents.create') }}" class="btn btn-primary">
                         <i class="bi bi-people-fill me-2"></i>
                         Ajouter un parent
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Messages de succès/erreur -->
+    @if(session('success'))
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    @if(session('error'))
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -147,7 +172,7 @@
                         <i class="bi bi-people-fill me-2"></i>
                         Liste des parents
                     </h5>
-                    <span class="badge bg-primary fs-6">{{ $parentsCount ?? 156 }} parents</span>
+                    <span class="badge bg-primary fs-6">{{ $parents->total() }} parent{{ $parents->total() > 1 ? 's' : '' }}</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -164,101 +189,127 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <!-- Sample data -->
+                                @forelse($parents as $parent)
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="https://via.placeholder.com/40x40/007bff/ffffff?text=KJ" class="rounded-circle me-3" width="40" height="40">
+                                            @php
+                                                $initials = substr($parent->first_name, 0, 1) . substr($parent->last_name, 0, 1);
+                                                $colors = ['007bff', '28a745', 'dc3545', 'ffc107', '17a2b8', '6610f2'];
+                                                $color = $colors[abs(crc32($parent->id)) % count($colors)];
+                                            @endphp
+                                            <img src="https://via.placeholder.com/40x40/{{ $color }}/ffffff?text={{ $initials }}" 
+                                                 class="rounded-circle me-3" width="40" height="40">
                                             <div>
-                                                <div class="fw-bold">Kouassi Jean</div>
-                                                <small class="text-muted">Père</small>
+                                                <div class="fw-bold">{{ $parent->first_name }} {{ $parent->last_name }}</div>
+                                                <small class="text-muted">
+                                                    @switch($parent->relationship)
+                                                        @case('father') Père @break
+                                                        @case('mother') Mère @break
+                                                        @case('guardian') Tuteur/Tutrice @break
+                                                        @default {{ ucfirst($parent->relationship) }}
+                                                    @endswitch
+                                                </small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge bg-primary">Père</span>
+                                        @php
+                                            $relationColors = [
+                                                'father' => 'primary',
+                                                'mother' => 'success', 
+                                                'guardian' => 'warning',
+                                                'other' => 'secondary'
+                                            ];
+                                            $relationLabels = [
+                                                'father' => 'Père',
+                                                'mother' => 'Mère',
+                                                'guardian' => 'Tuteur',
+                                                'other' => 'Autre'
+                                            ];
+                                        @endphp
+                                        <span class="badge bg-{{ $relationColors[$parent->relationship] ?? 'secondary' }}">
+                                            {{ $relationLabels[$parent->relationship] ?? ucfirst($parent->relationship) }}
+                                        </span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info me-1">Kouassi Marie</span>
-                                        <span class="badge bg-secondary">1 enfant</span>
+                                        @if($parent->students->count() > 0)
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach($parent->students->take(2) as $student)
+                                                    <span class="badge bg-info">{{ $student->first_name }} {{ $student->last_name }}</span>
+                                                @endforeach
+                                                @if($parent->students->count() > 2)
+                                                    <span class="badge bg-secondary">+{{ $parent->students->count() - 2 }} autre(s)</span>
+                                                @endif
+                                            </div>
+                                            <small class="text-muted">{{ $parent->students->count() }} enfant{{ $parent->students->count() > 1 ? 's' : '' }}</small>
+                                        @else
+                                            <span class="text-muted">Aucun enfant</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <div>
-                                            <small class="d-block">+225 07 00 00 00</small>
-                                            <small class="text-muted">jean.kouassi@email.com</small>
+                                            <small class="d-block">{{ $parent->phone }}</small>
+                                            @if($parent->email)
+                                                <small class="text-muted">{{ $parent->email }}</small>
+                                            @endif
                                         </div>
                                     </td>
                                     <td>
-                                        <div>
-                                            <div class="fw-bold small">Ingénieur</div>
-                                            <small class="text-muted">Orange CI</small>
-                                        </div>
+                                        @if($parent->profession || $parent->workplace)
+                                            <div>
+                                                @if($parent->profession)
+                                                    <div class="fw-bold small">{{ $parent->profession }}</div>
+                                                @endif
+                                                @if($parent->workplace)
+                                                    <small class="text-muted">{{ $parent->workplace }}</small>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-muted">Non renseigné</span>
+                                        @endif
                                     </td>
                                     <td>
-                                        <span class="badge bg-success me-1">Contact principal</span>
-                                        <span class="badge bg-info">Récupération</span>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @if($parent->is_primary_contact)
+                                                <span class="badge bg-success">Contact principal</span>
+                                            @endif
+                                            @if($parent->can_pickup)
+                                                <span class="badge bg-info">Récupération</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewParent(1)" title="Voir détails">
+                                            <a href="{{ route('parents.show', $parent->id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Voir détails">
                                                 <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="editParent(1)" title="Modifier">
+                                            </a>
+                                            <a href="{{ route('parents.edit', $parent->id) }}" 
+                                               class="btn btn-sm btn-outline-warning" title="Modifier">
                                                 <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteParent(1)" title="Supprimer">
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-parent-btn" 
+                                                    data-parent-id="{{ $parent->id }}" title="Supprimer">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
+                                @empty
                                 <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="https://via.placeholder.com/40x40/28a745/ffffff?text=BF" class="rounded-circle me-3" width="40" height="40">
-                                            <div>
-                                                <div class="fw-bold">Bamba Fatou</div>
-                                                <small class="text-muted">Mère</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-success">Mère</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info me-1">Bamba Amadou</span>
-                                        <span class="badge bg-secondary">1 enfant</span>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <small class="d-block">+225 05 11 22 33</small>
-                                            <small class="text-muted">fatou.bamba@email.com</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <div class="fw-bold small">Commerçante</div>
-                                            <small class="text-muted">Marché de Cocody</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-success me-1">Contact principal</span>
-                                        <span class="badge bg-info">Récupération</span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewParent(2)" title="Voir détails">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="editParent(2)" title="Modifier">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteParent(2)" title="Supprimer">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="bi bi-people fs-1 mb-3"></i>
+                                            <h5>Aucun parent trouvé</h5>
+                                            <p>Commencez par ajouter votre premier parent.</p>
+                                            <a href="{{ route('parents.create') }}" class="btn btn-primary">
+                                                <i class="bi bi-plus-circle me-2"></i>Ajouter un parent
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -268,115 +319,32 @@
     </div>
 </div>
 
-<!-- Add Parent Modal -->
-<div class="modal fade" id="addParentModal" tabindex="-1" aria-labelledby="addParentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addParentModalLabel">
-                    <i class="bi bi-people-fill me-2"></i>
-                    Ajouter un nouveau parent
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addParentForm">
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="fw-bold text-primary mb-3">Informations personnelles</h6>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="first_name" class="form-label">Prénom <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="last_name" class="form-label">Nom <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="email" name="email">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="phone" class="form-label">Téléphone <span class="text-danger">*</span></label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" required>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label for="phone_2" class="form-label">Téléphone 2</label>
-                                <input type="tel" class="form-control" id="phone_2" name="phone_2">
-                            </div>
-                            <div class="mb-3">
-                                <label for="address" class="form-label">Adresse <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="address" name="address" rows="3" required></textarea>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="fw-bold text-success mb-3">Informations professionnelles</h6>
-                            <div class="mb-3">
-                                <label for="profession" class="form-label">Profession</label>
-                                <input type="text" class="form-control" id="profession" name="profession">
-                            </div>
-                            <div class="mb-3">
-                                <label for="workplace" class="form-label">Lieu de travail</label>
-                                <input type="text" class="form-control" id="workplace" name="workplace">
-                            </div>
-                            <div class="mb-3">
-                                <label for="relationship" class="form-label">Relation <span class="text-danger">*</span></label>
-                                <select class="form-select" id="relationship" name="relationship" required>
-                                    <option value="">Sélectionner...</option>
-                                    <option value="father">Père</option>
-                                    <option value="mother">Mère</option>
-                                    <option value="guardian">Tuteur</option>
-                                    <option value="other">Autre</option>
-                                </select>
-                            </div>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="is_primary_contact" name="is_primary_contact">
-                                <label class="form-check-label" for="is_primary_contact">
-                                    Contact principal
-                                </label>
-                            </div>
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="can_pickup" name="can_pickup" checked>
-                                <label class="form-check-label" for="can_pickup">
-                                    Autorisé à récupérer l'enfant
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle me-2"></i>
-                        Annuler
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Enregistrer le parent
-                    </button>
-                </div>
-            </form>
+<!-- Pagination -->
+@if($parents->hasPages())
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-center">
+            {{ $parents->appends(request()->query())->links() }}
         </div>
     </div>
 </div>
+@endif
 @endsection
 
 @push('scripts')
 <script>
-function viewParent(id) {
-    alert('Voir les détails du parent #' + id);
-}
-
-function editParent(id) {
-    alert('Modifier le parent #' + id);
-}
-
 function deleteParent(id) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce parent ?')) {
-        alert('Parent supprimé avec succès!');
+        // Créer un formulaire pour la suppression
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/parents/${id}`;
+        form.innerHTML = `
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="_method" value="DELETE">
+        `;
+        document.body.appendChild(form);
+        form.submit();
     }
 }
 
@@ -385,18 +353,77 @@ function resetFilters() {
     document.getElementById('relationFilter').value = '';
     document.getElementById('primaryFilter').value = '';
     document.getElementById('pickupFilter').value = '';
+    // Rediriger vers la page sans filtres
+    window.location.href = "{{ route('parents.index') }}";
 }
 
 function exportData() {
     alert('Export en cours...');
 }
 
+// Filtrage en temps réel
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('addParentForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('Parent ajouté avec succès!');
-        bootstrap.Modal.getInstance(document.getElementById('addParentModal')).hide();
+    const searchInput = document.getElementById('searchInput');
+    const relationFilter = document.getElementById('relationFilter');
+    const primaryFilter = document.getElementById('primaryFilter');
+    const pickupFilter = document.getElementById('pickupFilter');
+    
+    // Event listener pour les boutons de suppression
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-parent-btn')) {
+            const parentId = e.target.closest('.delete-parent-btn').dataset.parentId;
+            deleteParent(parentId);
+        }
     });
+    
+    let searchTimeout;
+    
+    function applyFilters() {
+        const params = new URLSearchParams();
+        
+        if (searchInput.value.trim()) {
+            params.append('search', searchInput.value.trim());
+        }
+        if (relationFilter.value) {
+            params.append('relationship', relationFilter.value);
+        }
+        if (primaryFilter.value) {
+            params.append('is_primary_contact', primaryFilter.value);
+        }
+        if (pickupFilter.value) {
+            params.append('can_pickup', pickupFilter.value);
+        }
+        
+        const url = new URL(window.location.href);
+        url.search = params.toString();
+        window.location.href = url.toString();
+    }
+    
+    // Recherche avec délai
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(applyFilters, 500);
+    });
+    
+    // Filtres immédiats
+    relationFilter.addEventListener('change', applyFilters);
+    primaryFilter.addEventListener('change', applyFilters);
+    pickupFilter.addEventListener('change', applyFilters);
+    
+    // Pré-remplir les filtres avec les valeurs de l'URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('search')) {
+        searchInput.value = urlParams.get('search');
+    }
+    if (urlParams.get('relationship')) {
+        relationFilter.value = urlParams.get('relationship');
+    }
+    if (urlParams.get('is_primary_contact')) {
+        primaryFilter.value = urlParams.get('is_primary_contact');
+    }
+    if (urlParams.get('can_pickup')) {
+        pickupFilter.value = urlParams.get('can_pickup');
+    }
 });
 </script>
 @endpush 

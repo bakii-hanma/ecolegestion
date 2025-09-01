@@ -212,9 +212,16 @@
                                 <tr class="align-middle">
                                     <td class="text-center">
                                         <div class="avatar-sm mx-auto">
-                                            <div class="avatar-title bg-primary rounded-circle" style="width: 45px; height: 45px; font-size: 1.2rem;">
-                                                {{ strtoupper(substr($teacher->first_name, 0, 1) . substr($teacher->last_name, 0, 1)) }}
-                                            </div>
+                                            @if($teacher->photo)
+                                                <img src="{{ asset('storage/' . $teacher->photo) }}" 
+                                                     alt="Photo {{ $teacher->full_name }}" 
+                                                     class="rounded-circle" 
+                                                     style="width: 45px; height: 45px; object-fit: cover;">
+                                            @else
+                                                <div class="avatar-title bg-primary rounded-circle" style="width: 45px; height: 45px; font-size: 1.2rem;">
+                                                    {{ strtoupper(substr($teacher->first_name, 0, 1) . substr($teacher->last_name, 0, 1)) }}
+                                                </div>
+                                            @endif
                                         </div>
                                     </td>
                                     <td>
@@ -227,6 +234,13 @@
                                                 <i class="bi bi-briefcase me-1"></i>
                                                 {{ $teacher->qualification ?? 'Enseignant' }}
                                             </small>
+                                            @if($teacher->specialization && $teacher->teacher_type === 'specialized')
+                                                <br>
+                                                <small class="text-primary">
+                                                    <i class="bi bi-book me-1"></i>
+                                                    {{ $teacher->specialization }}
+                                                </small>
+                                            @endif
                                             <br>
                                             <small class="text-info">
                                                 <i class="bi bi-calendar me-1"></i>

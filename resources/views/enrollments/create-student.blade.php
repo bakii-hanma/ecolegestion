@@ -39,21 +39,52 @@
                         <small class="text-muted">{{ $enrollment->applicant_address }}</small>
                     </div>
                     
+                    @if($enrollment->parent_first_name && $enrollment->parent_last_name)
                     <div class="mb-3">
                         <strong>Parent/Tuteur :</strong><br>
                         {{ $enrollment->parent_full_name }}<br>
                         <small class="text-muted">{{ $enrollment->parent_relationship_label }}</small><br>
-                        <i class="bi bi-telephone me-1"></i>{{ $enrollment->parent_phone }}
+                        @if($enrollment->parent_phone)
+                            <i class="bi bi-telephone me-1"></i>{{ $enrollment->parent_phone }}
+                        @endif
                         @if($enrollment->parent_email)
                             <br><i class="bi bi-envelope me-1"></i>{{ $enrollment->parent_email }}
                         @endif
                     </div>
+                    @else
+                    <div class="mb-3">
+                        <strong>Parent/Tuteur :</strong><br>
+                        <small class="text-muted">Informations parent à saisir ultérieurement</small>
+                    </div>
+                    @endif
                     
                     <div class="mb-3">
                         <strong>Inscription :</strong><br>
-                        {{ $enrollment->schoolClass->name ?? 'Classe non trouvée' }}<br>
-                        <small class="text-muted">{{ $enrollment->academicYear->name ?? 'Année non trouvée' }}</small><br>
-                        <small class="text-muted">Inscrit le {{ $enrollment->enrollment_date->format('d/m/Y') }}</small>
+                        @if($enrollment->schoolClass && is_object($enrollment->schoolClass))
+                            {{ $enrollment->schoolClass->name }}<br>
+                            @if($enrollment->schoolClass->levelData && is_object($enrollment->schoolClass->levelData))
+                                <small class="text-muted">
+                                    <i class="bi bi-mortarboard me-1"></i>
+                                    {{ $enrollment->schoolClass->levelData->name }} ({{ ucfirst($enrollment->schoolClass->levelData->cycle) }})
+                                </small><br>
+                            @else
+                                <small class="text-muted">Niveau non trouvé</small><br>
+                            @endif
+                        @else
+                            <span class="text-danger">Classe non trouvée</span><br>
+                        @endif
+                        <small class="text-muted">
+                            <i class="bi bi-calendar-range me-1"></i>
+                            @if($enrollment->academicYear && is_object($enrollment->academicYear))
+                                {{ $enrollment->academicYear->name }}
+                            @else
+                                Année non trouvée (ID: {{ $enrollment->academic_year_id ?? 'null' }})
+                            @endif
+                        </small><br>
+                        <small class="text-muted">
+                            <i class="bi bi-calendar-plus me-1"></i>
+                            Inscrit le {{ $enrollment->enrollment_date->format('d/m/Y') }}
+                        </small>
                     </div>
                     
                     <div class="alert alert-warning">
@@ -127,10 +158,14 @@
                                 
                                 <div class="mb-3">
                                     <label for="student_id" class="form-label">Matricule élève</label>
-                                    <input type="text" class="form-control" id="student_id" name="student_id" placeholder="Sera généré automatiquement si laissé vide">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                                        <input type="text" class="form-control" id="student_id_display" readonly style="background-color: #f8f9fa;" value="Chargement...">
+                                        <input type="hidden" id="student_id" name="student_id">
+                                    </div>
                                     <div class="form-text">
-                                        <i class="bi bi-magic me-1"></i>
-                                        Le matricule sera généré automatiquement (format: STU2024XXXX) si vous laissez ce champ vide
+                                        <i class="bi bi-magic me-1 text-primary"></i>
+                                        <span class="text-primary">Matricule généré automatiquement</span> - Ce matricule sera attribué à l'élève lors de l'enregistrement
                                     </div>
                                 </div>
                                 
@@ -171,19 +206,19 @@
                                     <div class="col-md-3">
                                         <div class="mb-3">
                                             <label class="form-label">Classe</label>
-                                            <input type="text" class="form-control" value="{{ $enrollment->schoolClass->name ?? 'N/A' }}" readonly>
+                                            <input type="text" class="form-control" value="{{ $enrollment->schoolClass && is_object($enrollment->schoolClass) ? $enrollment->schoolClass->name : 'N/A' }}" readonly>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="mb-3">
                                             <label class="form-label">Niveau</label>
-                                            <input type="text" class="form-control" value="{{ $enrollment->schoolClass->level->name ?? 'N/A' }}" readonly>
+                                            <input type="text" class="form-control" value="{{ $enrollment->schoolClass && is_object($enrollment->schoolClass) && $enrollment->schoolClass->levelData && is_object($enrollment->schoolClass->levelData) ? $enrollment->schoolClass->levelData->name : 'N/A' }}" readonly>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
                                         <div class="mb-3">
                                             <label class="form-label">Année scolaire</label>
-                                            <input type="text" class="form-control" value="{{ $enrollment->academicYear->name ?? 'N/A' }}" readonly>
+                                            <input type="text" class="form-control" value="{{ $enrollment->academicYear && is_object($enrollment->academicYear) ? $enrollment->academicYear->name : 'N/A' }}" readonly>
                                         </div>
                                     </div>
                                     <div class="col-md-3">
@@ -222,24 +257,42 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Générer automatiquement un matricule
-    function generateStudentId() {
-        const year = new Date().getFullYear();
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        return `ETU${year}${random}`;
+    // Charger automatiquement le prochain matricule disponible
+    function loadNextStudentMatricule() {
+        const studentIdDisplay = document.getElementById('student_id_display');
+        const studentIdHidden = document.getElementById('student_id');
+        
+        if (studentIdDisplay && studentIdHidden) {
+            // Afficher un indicateur de chargement
+            studentIdDisplay.value = 'Chargement...';
+            
+            fetch('/api/next-student-matricule')
+                .then(response => response.json())
+                .then(data => {
+                    studentIdDisplay.value = data.matricule;
+                    studentIdHidden.value = data.matricule;
+                })
+                .catch(error => {
+                    console.error('Erreur lors du chargement du matricule:', error);
+                    studentIdDisplay.value = 'Erreur de chargement';
+                });
+        }
     }
-    
-    // Pré-remplir le matricule si vide
-    const studentIdInput = document.getElementById('student_id');
-    if (!studentIdInput.value) {
-        studentIdInput.value = generateStudentId();
-    }
+
+    // Charger le matricule au chargement de la page
+    loadNextStudentMatricule();
     
     // Soumission du formulaire
     document.getElementById('createStudentForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Afficher le spinner et désactiver le bouton
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Création en cours...';
+        submitBtn.disabled = true;
         
         fetch(this.action, {
             method: 'POST',
@@ -251,15 +304,26 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Changer le texte pour indiquer le succès
+                submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Élève créé avec succès !';
+                submitBtn.classList.remove('btn-primary');
+                submitBtn.classList.add('btn-success');
+                
                 alert(data.message);
                 window.location.href = '{{ route("enrollments.index") }}';
             } else {
                 alert('Erreur: ' + data.message);
+                // Restaurer le bouton original
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Une erreur est survenue lors de la création de l\'élève.');
+            // Restaurer le bouton original
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         });
     });
 });

@@ -201,68 +201,10 @@
                 </div>
             </div>
 
-            <!-- Colonne 3 : Parent et Paiement -->
+            <!-- Colonne 3 : Informations de paiement -->
             <div class="col-lg-4">
-                <!-- Informations du parent -->
-                <div class="card shadow-sm mb-3">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0">
-                            <i class="bi bi-people me-2"></i>
-                            Parent/Tuteur responsable
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="parent_first_name" class="form-label">Prénom <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="parent_first_name" name="parent_first_name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="parent_last_name" class="form-label">Nom <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="parent_last_name" name="parent_last_name" required>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="parent_phone" class="form-label">
-                                <i class="bi bi-telephone me-1"></i>
-                                Téléphone <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control" id="parent_phone" name="parent_phone" required placeholder="+241 XX XX XX XX">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="parent_email" class="form-label">
-                                <i class="bi bi-envelope me-1"></i>
-                                Email
-                            </label>
-                            <input type="email" class="form-control" id="parent_email" name="parent_email" placeholder="parent@exemple.com">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="parent_relationship" class="form-label">
-                                <i class="bi bi-heart me-1"></i>
-                                Lien de parenté <span class="text-danger">*</span>
-                            </label>
-                            <select class="form-select" id="parent_relationship" name="parent_relationship" required>
-                                <option value="">Choisir...</option>
-                                <option value="father">👨 Père</option>
-                                <option value="mother">👩 Mère</option>
-                                <option value="guardian">👥 Tuteur</option>
-                                <option value="grandparent">👵 Grand-parent</option>
-                                <option value="uncle_aunt">👨‍👩‍👧 Oncle/Tante</option>
-                                <option value="other">❓ Autre</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Informations de paiement -->
-                <div class="card shadow-sm">
+                <div class="card shadow-sm h-100">
                     <div class="card-header bg-danger text-white">
                         <h5 class="mb-0">
                             <i class="bi bi-credit-card me-2"></i>
@@ -319,6 +261,56 @@
                                 <option value="check">📄 Chèque</option>
                                 <option value="card">💳 Carte bancaire</option>
                             </select>
+                        </div>
+
+                        <!-- Section Mobile Money (affichée seulement si Mobile Money est sélectionné) -->
+                        <div id="mobile_money_section" class="mb-3" style="display: none;">
+                            <label class="form-label">
+                                <i class="bi bi-phone me-1"></i>
+                                Choisir votre opérateur Mobile Money
+                            </label>
+                            
+                            <!-- Sélection d'opérateur avec images -->
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="mobile_money_provider" id="airtel_money" value="airtel">
+                                        <label class="form-check-label d-flex align-items-center p-3 border rounded" for="airtel_money" style="cursor: pointer;">
+                                            <img src="{{ asset('images/payment-methods/airtel-money.png') }}" alt="Airtel Money" style="width: 40px; height: 40px; margin-right: 10px;">
+                                            <div>
+                                                <strong>Airtel Money</strong>
+                                                <br><small class="text-muted">Numéros 07XXXXXXX - Paiement sécurisé</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="mobile_money_provider" id="moov_money" value="moov">
+                                        <label class="form-check-label d-flex align-items-center p-3 border rounded" for="moov_money" style="cursor: pointer;">
+                                            <img src="{{ asset('images/payment-methods/moov-money.jpg') }}" alt="Moov Money" style="width: 40px; height: 40px; margin-right: 10px;">
+                                            <div>
+                                                <strong>Moov Money</strong>
+                                                <br><small class="text-muted">Numéros 06XXXXXXX - Paiement sécurisé</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Champ numéro de téléphone mobile money -->
+                            <div class="mt-3" id="mobile_number_field" style="display: none;">
+                                <label for="mobile_money_number" class="form-label">
+                                    <i class="bi bi-phone-fill me-1"></i>
+                                    Numéro de téléphone Mobile Money
+                                </label>
+                                <input type="tel" class="form-control" id="mobile_money_number" name="mobile_money_number" 
+                                       placeholder="Ex: 07XXXXXXX" pattern="0[67][0-9]{7}" maxlength="9">
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <span id="mobile_money_hint">Saisissez votre numéro Mobile Money (9 chiffres)</span>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -404,6 +396,83 @@
                     <i class="bi bi-person-plus me-2"></i>
                     Créer le profil élève
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour proposer l'enregistrement des parents -->
+<div class="modal fade" id="parentRegistrationModal" tabindex="-1" aria-labelledby="parentRegistrationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="parentRegistrationModalLabel">
+                    <i class="bi bi-people-fill me-2"></i>
+                    Enregistrer les parents de l'élève
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info d-flex align-items-center">
+                    <i class="bi bi-info-circle me-3 fs-4"></i>
+                    <div>
+                        <strong>Inscription réussie !</strong><br>
+                        L'élève <strong id="studentNameInModal"></strong> a été inscrit avec succès. 
+                        Souhaitez-vous maintenant enregistrer les informations de ses parents/tuteurs ?
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <i class="bi bi-clock-history fs-2 text-warning mb-3"></i>
+                                <h6>Plus tard</h6>
+                                <p class="text-muted small">Vous pourrez ajouter les parents plus tard via la section "Parents" du système.</p>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                    <i class="bi bi-clock me-2"></i>
+                                    Reporter à plus tard
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <i class="bi bi-person-plus-fill fs-2 text-success mb-3"></i>
+                                <h6>Maintenant</h6>
+                                <p class="text-muted small">Enregistrer immédiatement les informations des parents/tuteurs de cet élève.</p>
+                                <button type="button" class="btn btn-success" id="addParentNowBtn">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    Ajouter maintenant
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="text-primary mb-3">
+                            <i class="bi bi-lightbulb me-2"></i>
+                            Pourquoi enregistrer les parents ?
+                        </h6>
+                        <ul class="text-muted small">
+                            <li>Accès au portail parent pour consulter les notes et absences</li>
+                            <li>Réception de notifications automatiques</li>
+                            <li>Gestion des paiements en ligne</li>
+                            <li>Communication directe avec l'établissement</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="text-muted small">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Vous pourrez toujours ajouter ou modifier les parents plus tard.
+                </div>
             </div>
         </div>
     </div>
@@ -529,7 +598,8 @@ document.addEventListener('DOMContentLoaded', function() {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
             }
         })
         .then(response => response.json())
@@ -572,7 +642,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 
                 // Afficher le modal
-                new bootstrap.Modal(document.getElementById('enrollmentSuccessModal')).show();
+                const successModal = new bootstrap.Modal(document.getElementById('enrollmentSuccessModal'));
+                successModal.show();
+                
+                // Après fermeture du modal de succès, proposer l'ajout des parents
+                document.getElementById('enrollmentSuccessModal').addEventListener('hidden.bs.modal', function () {
+                    // Attendre un peu avant d'afficher le modal parent
+                    setTimeout(function() {
+                        showParentRegistrationModal(data.enrollment);
+                    }, 500);
+                });
                 
                 // Réinitialiser le formulaire
                 document.getElementById('enrollmentForm').reset();
@@ -597,7 +676,101 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.innerHTML = originalText;
         });
     });
+
+    // Gestion de la section Mobile Money
+    const paymentMethodSelect = document.getElementById('payment_method');
+    const mobileMoneySectionDiv = document.getElementById('mobile_money_section');
+    const mobileNumberFieldDiv = document.getElementById('mobile_number_field');
+    const mobileProviderRadios = document.querySelectorAll('input[name="mobile_money_provider"]');
+
+    // Afficher/masquer la section mobile money selon la méthode de paiement
+    paymentMethodSelect.addEventListener('change', function() {
+        if (this.value === 'mobile_money') {
+            mobileMoneySectionDiv.style.display = 'block';
+        } else {
+            mobileMoneySectionDiv.style.display = 'none';
+            mobileNumberFieldDiv.style.display = 'none';
+            // Réinitialiser les champs mobile money
+            mobileProviderRadios.forEach(radio => radio.checked = false);
+            document.getElementById('mobile_money_number').value = '';
+        }
+    });
+
+    // Afficher le champ numéro quand un opérateur est sélectionné
+    mobileProviderRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                mobileNumberFieldDiv.style.display = 'block';
+                
+                // Mettre à jour le placeholder et le message selon l'opérateur gabonais
+                const mobileNumberInput = document.getElementById('mobile_money_number');
+                const mobileMoneyHint = document.getElementById('mobile_money_hint');
+                
+                if (this.value === 'airtel') {
+                    mobileNumberInput.placeholder = 'Ex: 076527007 (Airtel)';
+                    mobileMoneyHint.innerHTML = '<strong>Airtel :</strong> Numéros commençant par 07 (9 chiffres)';
+                } else if (this.value === 'moov') {
+                    mobileNumberInput.placeholder = 'Ex: 066527007 (Moov/Libertis)';
+                    mobileMoneyHint.innerHTML = '<strong>Moov/Libertis :</strong> Numéros commençant par 06 (9 chiffres)';
+                }
+            }
+        });
+    });
+
+    // Validation du formulaire pour mobile money
+    const originalFormSubmit = document.getElementById('enrollmentForm').onsubmit;
+    document.getElementById('enrollmentForm').addEventListener('submit', function(e) {
+        if (paymentMethodSelect.value === 'mobile_money') {
+            const selectedProvider = document.querySelector('input[name="mobile_money_provider"]:checked');
+            const mobileNumber = document.getElementById('mobile_money_number').value;
+            
+            if (!selectedProvider) {
+                e.preventDefault();
+                alert('Veuillez sélectionner un opérateur Mobile Money.');
+                return false;
+            }
+            
+            if (!mobileNumber.trim()) {
+                e.preventDefault();
+                alert('Veuillez entrer votre numéro de téléphone Mobile Money.');
+                return false;
+            }
+            
+            // Validation spécifique selon l'opérateur gabonais
+            const cleanNumber = mobileNumber.replace(/\s/g, ''); // Supprimer les espaces
+            
+            if (selectedProvider.value === 'airtel') {
+                if (!/^07[0-9]{7}$/.test(cleanNumber)) {
+                    e.preventDefault();
+                    alert('Numéro Airtel invalide. Utilisez le format : 07XXXXXXX (ex: 076527007)');
+                    return false;
+                }
+            } else if (selectedProvider.value === 'moov') {
+                if (!/^06[0-9]{7}$/.test(cleanNumber)) {
+                    e.preventDefault();
+                    alert('Numéro Moov/Libertis invalide. Utilisez le format : 06XXXXXXX (ex: 066527007)');
+                    return false;
+                }
+            }
+        }
+    });
 });
+
+// Fonction pour afficher le modal d'enregistrement des parents
+function showParentRegistrationModal(enrollment) {
+    // Mettre à jour le nom de l'élève dans le modal
+    document.getElementById('studentNameInModal').textContent = `${enrollment.applicant_first_name} ${enrollment.applicant_last_name}`;
+    
+    // Configurer le bouton "Ajouter maintenant"
+    document.getElementById('addParentNowBtn').onclick = function() {
+        // Rediriger vers la page de création de parent avec l'ID de l'élève en paramètre
+        window.location.href = `/parents/create?student_id=${enrollment.id}&from=enrollment`;
+    };
+    
+    // Afficher le modal
+    const parentModal = new bootstrap.Modal(document.getElementById('parentRegistrationModal'));
+    parentModal.show();
+}
 </script>
 
 <style>
@@ -629,6 +802,36 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-lg {
     padding: 0.75rem 1.5rem;
     font-size: 1.1rem;
+}
+
+/* Styles pour Mobile Money */
+.form-check-label {
+    transition: all 0.3s ease;
+}
+
+.form-check-input:checked + .form-check-label {
+    background-color: #e3f2fd !important;
+    border-color: #007bff !important;
+    border-width: 2px !important;
+}
+
+.form-check-label:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff;
+}
+
+#mobile_money_section {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+#mobile_number_field {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
 }
 </style>
 @endsection 

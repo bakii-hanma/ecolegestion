@@ -32,10 +32,13 @@
                 <div class="card-body" id="receipt-content">
                     <!-- En-tête de l'établissement -->
                     <div class="text-center mb-4 border-bottom pb-3">
-                        <h2 class="text-primary mb-1">StudiaGabon</h2>
-                        <p class="mb-1">Système de Gestion Scolaire</p>
-                        <p class="mb-1 text-muted">Libreville, Gabon</p>
-                        <p class="mb-0 text-muted">Tél: +241 XX XX XX XX | Email: contact@studiagabon.ga</p>
+                        @if($schoolSettings && $schoolSettings->school_logo)
+                            <img src="{{ $schoolSettings->logo_url }}" alt="Logo {{ $schoolSettings->school_name }}" class="mb-2" style="max-height: 60px;">
+                        @endif
+                        <h2 class="text-primary mb-1">{{ $schoolSettings->school_name ?? 'StudiaGabon' }}</h2>
+                        <p class="mb-1">{{ $schoolSettings->school_type ?? 'Système de Gestion Scolaire' }}</p>
+                        <p class="mb-1 text-muted">{{ $schoolSettings->city ?? 'Libreville' }}, {{ $schoolSettings->country ?? 'Gabon' }}</p>
+                        <p class="mb-0 text-muted">Tél: {{ $schoolSettings->school_phone ?? '+241 XX XX XX XX' }} | Email: {{ $schoolSettings->school_email ?? 'contact@studiagabon.ga' }}</p>
                     </div>
 
                     <!-- Informations du reçu -->

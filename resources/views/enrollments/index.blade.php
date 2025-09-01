@@ -239,28 +239,42 @@
                                         <span class="fw-bold text-primary">#{{ $enrollment->id }}</span>
                                     </td>
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-sm me-2">
-                                                <div class="avatar-title bg-primary rounded-circle">
-                                                    {{ strtoupper(substr($enrollment->student->first_name, 0, 1) . substr($enrollment->student->last_name, 0, 1)) }}
+                                        @if($enrollment->student)
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm me-2">
+                                                    <div class="avatar-title bg-primary rounded-circle">
+                                                        {{ strtoupper(substr($enrollment->student->first_name ?? '', 0, 1) . substr($enrollment->student->last_name ?? '', 0, 1)) }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ $enrollment->student->full_name ?? 'Étudiant supprimé' }}</div>
+                                                    <small class="text-muted">{{ $enrollment->student->student_id ?? 'N/A' }}</small>
                                                 </div>
                                             </div>
-                                            <div>
-                                                <div class="fw-bold">{{ $enrollment->student->full_name }}</div>
-                                                <small class="text-muted">{{ $enrollment->student->student_id }}</small>
+                                        @else
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-sm me-2">
+                                                    <div class="avatar-title bg-danger rounded-circle">
+                                                        <i class="bi bi-exclamation-triangle"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-danger">Étudiant supprimé</div>
+                                                    <small class="text-muted">Référence invalide</small>
+                                                </div>
                                             </div>
-                                        </div>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="badge bg-info">{{ $enrollment->schoolClass->name }}</span>
                                     </td>
                                     <td>
-                                        @if($enrollment->schoolClass->level)
+                                        @if($enrollment->schoolClass && $enrollment->schoolClass->level)
                                             <div>
-                                                <div class="fw-bold">{{ $enrollment->schoolClass->level->name ?? $enrollment->schoolClass->level }}</div>
+                                                <div class="fw-bold">{{ is_object($enrollment->schoolClass->level) ? ($enrollment->schoolClass->level->name ?? 'N/A') : $enrollment->schoolClass->level }}</div>
                                                 <small class="text-muted text-capitalize">
                                                     @if(is_object($enrollment->schoolClass->level))
-                                                        {{ $enrollment->schoolClass->level->cycle }}
+                                                        {{ $enrollment->schoolClass->level->cycle ?? 'N/A' }}
                                                     @endif
                                                 </small>
                                             </div>
@@ -269,12 +283,16 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <div>
-                                            <div class="fw-bold">{{ $enrollment->academicYear->name }}</div>
-                                            @if($enrollment->academicYear->is_current)
-                                                <small class="badge bg-success">Courante</small>
-                                            @endif
-                                        </div>
+                                        @if($enrollment->academicYear)
+                                            <div>
+                                                <div class="fw-bold">{{ $enrollment->academicYear->name ?? 'N/A' }}</div>
+                                                @if($enrollment->academicYear->is_current)
+                                                    <small class="badge bg-success">Courante</small>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-muted">Non défini</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="text-nowrap">{{ $enrollment->getFormattedEnrollmentDate() }}</span>
@@ -292,9 +310,15 @@
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
                                             @endif
-                                            <a href="{{ route('enrollments.re-enroll', $enrollment->student) }}" class="btn btn-sm btn-outline-success" title="Réinscrire">
-                                                <i class="bi bi-arrow-repeat"></i>
-                                            </a>
+                                            @if($enrollment->student)
+                                                <a href="{{ route('enrollments.re-enroll', $enrollment->student) }}" class="btn btn-sm btn-outline-success" title="Réinscrire">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </a>
+                                            @else
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Étudiant supprimé">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </button>
+                                            @endif
                                             <button type="button" class="btn btn-sm btn-outline-danger" data-enrollment-id="{{ $enrollment->id }}" onclick="deleteEnrollment(this.dataset.enrollmentId)" title="Supprimer">
                                                 <i class="bi bi-trash"></i>
                                             </button>
@@ -495,8 +519,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function viewEnrollment(id) {
-    // Implémentation à venir
-    console.log('Voir inscription ID:', id);
+    // Rediriger vers la page de détails de l'inscription
+    window.location.href = `/enrollments/${id}/receipt`;
 }
 
 function editEnrollment(id) {

@@ -7,6 +7,8 @@ use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Level;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class TeacherController extends Controller
 {
@@ -72,7 +74,7 @@ class TeacherController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'employee_id' => 'required|unique:teachers',
+            // Le matricule est toujours généré automatiquement, pas de validation nécessaire
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:teachers',
@@ -88,7 +90,24 @@ class TeacherController extends Controller
             'hire_date' => 'required|date',
             'salary' => 'nullable|numeric|min:0',
             'status' => 'required|in:active,inactive,suspended',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Générer automatiquement le matricule - toujours obligatoire
+        $validated['employee_id'] = Teacher::generateEmployeeId();
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            if ($file->isValid()) {
+                $validated['photo'] = $file->store('teachers/photos', 'public');
+                Log::info('Photo enseignant uploadée avec succès: ' . $validated['photo']);
+            } else {
+                Log::error('Fichier photo enseignant invalide');
+            }
+        } else {
+            Log::info('Aucun fichier photo reçu pour l\'enseignant');
+        }
 
         // Validation spécifique selon le type d'enseignant
         if ($validated['teacher_type'] === 'general') {
@@ -114,7 +133,8 @@ class TeacherController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Enseignant ajouté avec succès!',
-            'teacher' => $teacher
+            'teacher' => $teacher->load(['assignedClass']),
+            'generated_matricule' => $teacher->employee_id
         ]);
     }
 
@@ -146,7 +166,7 @@ class TeacherController extends Controller
     public function update(Request $request, Teacher $teacher)
     {
         $validated = $request->validate([
-            'employee_id' => 'required|unique:teachers,employee_id,' . $teacher->id,
+            'employee_id' => 'nullable|unique:teachers,employee_id,' . $teacher->id,
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:teachers,email,' . $teacher->id,
@@ -162,7 +182,31 @@ class TeacherController extends Controller
             'hire_date' => 'required|date',
             'salary' => 'nullable|numeric|min:0',
             'status' => 'required|in:active,inactive,suspended',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Générer automatiquement le matricule si non fourni (pour les modifications)
+        if (empty($validated['employee_id'])) {
+            $validated['employee_id'] = Teacher::generateEmployeeId();
+        }
+
+        // Handle photo upload
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            if ($file->isValid()) {
+                // Supprimer l'ancienne photo si elle existe
+                if ($teacher->photo && Storage::disk('public')->exists($teacher->photo)) {
+                    Storage::disk('public')->delete($teacher->photo);
+                    Log::info('Ancienne photo enseignant supprimée: ' . $teacher->photo);
+                }
+                $validated['photo'] = $file->store('teachers/photos', 'public');
+                Log::info('Nouvelle photo enseignant uploadée: ' . $validated['photo']);
+            } else {
+                Log::error('Fichier photo enseignant invalide lors de la modification');
+            }
+        } else {
+            Log::info('Aucun fichier photo reçu lors de la modification enseignant');
+        }
 
         // Validation spécifique selon le type d'enseignant
         if ($validated['teacher_type'] === 'general') {
@@ -195,12 +239,26 @@ class TeacherController extends Controller
      */
     public function destroy(Teacher $teacher)
     {
-        $teacher->delete();
+        try {
+            // Supprimer la photo associée si elle existe
+            if ($teacher->photo && Storage::disk('public')->exists($teacher->photo)) {
+                Storage::disk('public')->delete($teacher->photo);
+                Log::info('Photo enseignant supprimée: ' . $teacher->photo);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Enseignant supprimé avec succès!'
-        ]);
+            $teacher->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Enseignant supprimé avec succès!'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la suppression de l\'enseignant: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Erreur lors de la suppression de l\'enseignant.'
+            ], 500);
+        }
     }
 
     /**

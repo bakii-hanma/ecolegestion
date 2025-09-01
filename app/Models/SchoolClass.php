@@ -11,11 +11,11 @@ class SchoolClass extends Model
     
     protected $fillable = [
         'name',
-        'level',
         'description',
         'capacity',
         'is_active',
-        'level_id'
+        'level_id',
+        'series'
     ];
     
     protected $casts = [
@@ -27,11 +27,37 @@ class SchoolClass extends Model
     {
         return $this->belongsTo(Level::class);
     }
+    
+    // Alias pour éviter le conflit avec la colonne level
+    public function levelData(): BelongsTo
+    {
+        return $this->belongsTo(Level::class, 'level_id');
+    }
+
+    // Relation avec les horaires
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'class_id');
+    }
+
+    // Relation avec les professeurs généralistes assignés
+    public function teachers()
+    {
+        return $this->hasMany(Teacher::class, 'assigned_class_id');
+    }
+
+    // Relation many-to-many avec tous les professeurs de la classe
+    public function allTeachers()
+    {
+        return $this->belongsToMany(Teacher::class, 'class_teacher', 'class_id', 'teacher_id')
+                    ->withPivot('role')
+                    ->withTimestamps();
+    }
 
     // Accesseur pour le nom complet avec niveau
     public function getFullNameAttribute()
     {
-        $levelName = $this->level ? $this->level->name : '';
+        $levelName = $this->levelData ? $this->levelData->name : '';
         return $this->name . ' - ' . $levelName;
     }
 
@@ -50,7 +76,7 @@ class SchoolClass extends Model
     // Scope pour filtrer par cycle
     public function scopeByCycle($query, $cycle)
     {
-        return $query->whereHas('level', function($q) use ($cycle) {
+        return $query->whereHas('levelData', function($q) use ($cycle) {
             $q->where('cycle', $cycle);
         });
     }
@@ -61,8 +87,8 @@ class SchoolClass extends Model
     public function getSafeLevel()
     {
         // Si level_id existe et qu'on a une relation, retourner la relation
-        if ($this->level_id && $this->relationLoaded('level') && $this->level instanceof Level) {
-            return $this->level;
+        if ($this->level_id && $this->relationLoaded('levelData') && $this->levelData instanceof Level) {
+            return $this->levelData;
         }
         
         // Si level_id existe mais pas de relation chargée, charger le niveau
@@ -90,11 +116,6 @@ class SchoolClass extends Model
         $safeLevel = $this->getSafeLevel();
         if ($safeLevel) {
             return $safeLevel->cycle;
-        }
-        
-        // Fallback sur l'ancienne colonne level si elle existe
-        if ($this->level && is_string($this->level)) {
-            return $this->level;
         }
         
         return 'non-defini';

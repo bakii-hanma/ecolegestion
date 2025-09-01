@@ -147,6 +147,20 @@
                                         @endif
                                     </p>
                                 </div>
+                            @elseif($teacher->teacher_type === 'specialized')
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Matière de spécialisation</label>
+                                    <p class="form-control-plaintext">
+                                        @if($teacher->specialization)
+                                            <span class="badge bg-primary">
+                                                <i class="bi bi-book me-1"></i>
+                                                {{ $teacher->specialization }}
+                                            </span>
+                                        @else
+                                            <span class="text-muted">Aucune spécialisation définie</span>
+                                        @endif
+                                    </p>
+                                </div>
                             @else
                                 <div class="mb-3">
                                     <label class="form-label fw-bold">Spécialisation</label>
@@ -181,9 +195,16 @@
             <div class="card text-center">
                 <div class="card-body">
                     <div class="avatar-lg mx-auto mb-3">
-                        <div class="avatar-title bg-primary rounded-circle" style="width: 80px; height: 80px; font-size: 2rem;">
-                            {{ strtoupper(substr($teacher->first_name, 0, 1) . substr($teacher->last_name, 0, 1)) }}
-                        </div>
+                        @if($teacher->photo)
+                            <img src="{{ asset('storage/' . $teacher->photo) }}" 
+                                 alt="Photo {{ $teacher->full_name }}" 
+                                 class="rounded-circle" 
+                                 style="width: 80px; height: 80px; object-fit: cover;">
+                        @else
+                            <div class="avatar-title bg-primary rounded-circle" style="width: 80px; height: 80px; font-size: 2rem;">
+                                {{ strtoupper(substr($teacher->first_name, 0, 1) . substr($teacher->last_name, 0, 1)) }}
+                            </div>
+                        @endif
                     </div>
                     <h5 class="card-title">{{ $teacher->full_name }}</h5>
                     <p class="text-muted">{{ $teacher->qualification ?? 'Enseignant' }}</p>

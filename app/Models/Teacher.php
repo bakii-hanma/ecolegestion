@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Teacher extends Model
 {
@@ -24,7 +25,8 @@ class Teacher extends Model
         'assigned_class_id',
         'hire_date',
         'salary',
-        'status'
+        'status',
+        'photo'
     ];
 
     protected $casts = [
@@ -33,16 +35,58 @@ class Teacher extends Model
         'salary' => 'decimal:2',
     ];
 
+    /**
+     * Générer automatiquement un matricule enseignant
+     */
+    public static function generateEmployeeId()
+    {
+        $year = date('Y');
+        
+        // Format: ENS + YYYY + 4 chiffres
+        $lastTeacher = static::where('employee_id', 'like', "ENS{$year}%")
+                            ->orderBy('employee_id', 'desc')
+                            ->first();
+        
+        $nextNumber = 1;
+        if ($lastTeacher) {
+            $lastNumber = intval(substr($lastTeacher->employee_id, -4));
+            $nextNumber = $lastNumber + 1;
+        }
+        
+        return "ENS{$year}" . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
     // Relation avec les notes attribuées
     public function grades(): HasMany
     {
         return $this->hasMany(Grade::class);
     }
 
+    // Relation avec les horaires
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class);
+    }
+
     // Relation avec la classe assignée (pour enseignants généralistes)
     public function assignedClass(): BelongsTo
     {
         return $this->belongsTo(SchoolClass::class, 'assigned_class_id');
+    }
+
+    // Relation many-to-many avec les matières
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'subject_teacher')
+                    ->withTimestamps();
+    }
+
+    // Relation many-to-many avec les classes
+    public function classes(): BelongsToMany
+    {
+        return $this->belongsToMany(SchoolClass::class, 'class_teacher', 'teacher_id', 'class_id')
+                    ->withPivot('role')
+                    ->withTimestamps();
     }
 
     // Accesseur pour le nom complet
@@ -103,5 +147,21 @@ class Teacher extends Model
     public function scopeSpecialized($query)
     {
         return $query->where('teacher_type', 'specialized');
+    }
+
+
+
+    // Méthode pour vérifier si l'enseignant peut enseigner une matière
+    public function canTeach($subjectId)
+    {
+        return $this->subjects()->where('subject_id', $subjectId)->exists();
+    }
+
+    // Scope pour les enseignants qui peuvent enseigner une matière spécifique
+    public function scopeCanTeachSubject($query, $subjectId)
+    {
+        return $query->whereHas('subjects', function($q) use ($subjectId) {
+            $q->where('subject_id', $subjectId);
+        });
     }
 }

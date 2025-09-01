@@ -20,7 +20,8 @@ class ParentModel extends Model
         'workplace',
         'relationship',
         'is_primary_contact',
-        'can_pickup'
+        'can_pickup',
+        'user_id'
     ];
     
     protected $casts = [

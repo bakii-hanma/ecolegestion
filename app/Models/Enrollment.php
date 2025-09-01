@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Enrollment extends Model
 {
@@ -21,11 +22,6 @@ class Enrollment extends Model
         'applicant_phone',
         'applicant_email',
         'applicant_address',
-        'parent_first_name',
-        'parent_last_name',
-        'parent_phone',
-        'parent_email',
-        'parent_relationship',
         'enrollment_status',
         'is_new_enrollment',
         'total_fees',
@@ -36,7 +32,9 @@ class Enrollment extends Model
         'payment_notes',
         'payment_status',
         'payment_due_date',
-        'receipt_number'
+        'receipt_number',
+        'mobile_money_provider',
+        'mobile_money_number'
     ];
 
     protected $casts = [
@@ -71,6 +69,14 @@ class Enrollment extends Model
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);
+    }
+
+    /**
+     * Get the online payments for this enrollment.
+     */
+    public function onlinePayments(): HasMany
+    {
+        return $this->hasMany(OnlinePayment::class);
     }
 
     // Accesseurs
@@ -237,6 +243,11 @@ class Enrollment extends Model
 
     public function getParentDataForCreation()
     {
+        // Vérifier si les données parent sont disponibles
+        if (!$this->parent_first_name || !$this->parent_last_name || !$this->parent_phone) {
+            return null; // Pas de données parent disponibles
+        }
+        
         return [
             'first_name' => $this->parent_first_name,
             'last_name' => $this->parent_last_name,
